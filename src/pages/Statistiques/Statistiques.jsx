@@ -13,7 +13,7 @@ import api from '../../services/api';
 
 export default function Statistiques() {
   const [statsJour, setStatsJour] = useState(null);
-  const [statsMois, setStatsMois] = useState([]);
+  const [statsMois, setStatsMois] = useState(null);
   const [primes, setPrimes] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -37,7 +37,12 @@ export default function Statistiques() {
     }
   };
 
-  const formatGNF = (v) => Number(v || 0).toLocaleString() + ' GNF';
+  const formatNombre = (v) => Number(v || 0).toLocaleString('fr-FR');
+  const formatGNF = (v) => `${formatNombre(v)} GNF`;
+  const chargementsParZone = (statsMois?.parZone || []).map((zone) => ({
+    zone: zone.zoneNom,
+    chargements: zone.nombreChargements,
+  }));
 
   if (loading) return (
     <Layout>
@@ -62,10 +67,10 @@ export default function Statistiques() {
         {/* Stats du jour */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
-            { label: 'Chargements aujourd\'hui', value: statsJour?.chargementsJour || 0, color: '#f97316' },
-            { label: 'Carburant consommé', value: `${statsJour?.carburantConsomme || 0} L`, color: '#ef4444' },
-            { label: 'Revenus du jour', value: formatGNF(statsJour?.revenusJour), color: '#22c55e' },
-            { label: 'Camions actifs', value: statsJour?.camionsActifs || 0, color: '#3b82f6' },
+            { label: 'Chargements aujourd\'hui', value: statsJour?.totalChargements || 0, color: '#f97316' },
+            { label: 'Carburant consommé', value: `${formatNombre(statsJour?.totalCarburant)} L`, color: '#ef4444' },
+            { label: 'Revenus du jour', value: formatGNF(statsJour?.totalRevenus), color: '#22c55e' },
+            { label: 'Camions actifs', value: statsJour?.chargementsEnCours || 0, color: '#3b82f6' },
           ].map((s) => (
             <Grid item xs={12} sm={6} lg={3} key={s.label}>
               <Card sx={{
@@ -85,11 +90,11 @@ export default function Statistiques() {
           <Typography variant="h6" sx={{ color: 'white', fontWeight: 600, mb: 3 }}>
             Chargements du mois
           </Typography>
-          {statsMois.length > 0 ? (
+          {chargementsParZone.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={statsMois}>
+              <BarChart data={chargementsParZone}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
+                <XAxis dataKey="zone" stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                 <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 12 }} />
                 <Tooltip
                   contentStyle={{ background: '#1a1a2e', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8 }}
@@ -132,10 +137,10 @@ export default function Statistiques() {
                 ) : (
                   primes.map((p, i) => (
                     <TableRow key={i} sx={{ '&:hover': { background: 'rgba(255,255,255,0.03)' } }}>
-                      <TableCell sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.08)' }}>{p.chauffeurNom}</TableCell>
+                      <TableCell sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.08)' }}>{`${p.prenom} ${p.nom}`}</TableCell>
                       <TableCell sx={{ color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.08)' }}>{p.zoneNom}</TableCell>
                       <TableCell sx={{ color: 'rgba(255,255,255,0.7)', borderColor: 'rgba(255,255,255,0.08)' }}>{p.nombreChargements}</TableCell>
-                      <TableCell sx={{ color: '#22c55e', fontWeight: 600, borderColor: 'rgba(255,255,255,0.08)' }}>{formatGNF(p.primeTotale)}</TableCell>
+                      <TableCell sx={{ color: '#22c55e', fontWeight: 600, borderColor: 'rgba(255,255,255,0.08)' }}>{formatGNF(p.primeTotal)}</TableCell>
                     </TableRow>
                   ))
                 )}

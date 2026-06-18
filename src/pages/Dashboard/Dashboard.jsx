@@ -41,26 +41,49 @@ const StatCard = ({ title, value, icon, color, suffix }) => (
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [totalPrimes, setTotalPrimes] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await api.get('/statistiques/journalieres');
-        setStats(res.data);
+        const [
+          statsRes,
+          primesChauffeursRes,
+          primesGroupesRes,
+          primesZonesRes,
+          primeGeneralRes,
+        ] = await Promise.all([
+          api.get('/statistiques/journalieres'),
+          api.get('/primes/chauffeurs'),
+          api.get('/primes/superviseurs-groupe'),
+          api.get('/primes/superviseurs-zone'),
+          api.get('/primes/superviseur-general'),
+        ]);
+
+        const primesChauffeurs = primesChauffeursRes.data.reduce((total, prime) => total + Number(prime.primeTotal || 0), 0);
+        const primesGroupes = primesGroupesRes.data.reduce((total, prime) => total + Number(prime.primeTotal || 0), 0);
+        const primesZones = primesZonesRes.data.reduce((total, prime) => total + Number(prime.primeTotal || 0), 0);
+        const primeGeneral = Number(primeGeneralRes.data?.primeTotal || 0);
+
+        setStats(statsRes.data);
+        setTotalPrimes(primesChauffeurs + primesGroupes + primesZones + primeGeneral);
       } catch {
         setStats({
-          totalCamions: 100,
-          chargementsJour: 0,
-          carburantConsomme: 0,
-          revenusJour: 0,
+          totalChargements: 0,
+          totalCarburant: 0,
+          totalRevenus: 0,
+          chargementsEnCours: 0,
         });
+        setTotalPrimes(0);
       } finally {
         setLoading(false);
       }
     };
     fetchStats();
   }, []);
+
+  const formatNumber = (value) => Number(value || 0).toLocaleString('fr-FR');
 
   return (
     <Layout>
@@ -80,8 +103,8 @@ export default function Dashboard() {
           <Grid container spacing={3}>
             <Grid item xs={12} sm={6} lg={3}>
               <StatCard
-                title="Total Camions"
-                value={stats?.totalCamions || 100}
+                title="Camions actifs"
+                value={stats?.chargementsEnCours || 0}
                 icon={<LocalShipping />}
                 color="#3b82f6"
               />
@@ -89,7 +112,7 @@ export default function Dashboard() {
             <Grid item xs={12} sm={6} lg={3}>
               <StatCard
                 title="Chargements du jour"
-                value={stats?.chargementsJour || 0}
+                value={stats?.totalChargements || 0}
                 icon={<Inventory />}
                 color="#f97316"
               />
@@ -97,7 +120,7 @@ export default function Dashboard() {
             <Grid item xs={12} sm={6} lg={3}>
               <StatCard
                 title="Carburant consommé"
-                value={stats?.carburantConsomme || 0}
+                value={formatNumber(stats?.totalCarburant)}
                 icon={<LocalGasStation />}
                 color="#ef4444"
                 suffix="L"
@@ -106,9 +129,18 @@ export default function Dashboard() {
             <Grid item xs={12} sm={6} lg={3}>
               <StatCard
                 title="Revenus du jour"
-                value={stats?.revenusJour?.toLocaleString() || 0}
+                value={formatNumber(stats?.totalRevenus)}
                 icon={<AttachMoney />}
                 color="#22c55e"
+                suffix="GNF"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} lg={3}>
+              <StatCard
+                title="Primes du mois"
+                value={formatNumber(totalPrimes)}
+                icon={<AttachMoney />}
+                color="#a855f7"
                 suffix="GNF"
               />
             </Grid>
